@@ -1,0 +1,39 @@
+# Elixir
+/_build
+/cover
+/deps
+/doc
+/.fetch
+erl_crash.dump
+*.ez
+fraud_system/.env.local
+fraud_system/.env.*.local
+
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+dashboard/.next/
+dashboard/out/
+dashboard/build/
+dashboard/.env.local
+dashboard/.env.*.local
+
+# Python/General
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+.vscode/
+.idea/
+*.log
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+# Enigma specific
+secrets/
+*.pem
+*.key

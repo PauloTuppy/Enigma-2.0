@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./fraud_system
+      dockerfile: Dockerfile
+    environment:
+      - MIX_ENV=prod
+      - DATABASE_URL=ecto://postgres:postgres@db:5432/fraud_system_prod
+      - SECRET_KEY_BASE=YOUR_SECRET_KEY_BASE_HERE_AT_LEAST_64_BYTES
+      - PORT=4000
+    ports:
+      - "4000:4000"
+    depends_on:
+      - db
+      - kafka
+
+  frontend:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    environment:
+      - NEXT_PUBLIC_WS_URL=ws://localhost:4000/socket
+      - NEXT_PUBLIC_API_URL=http://localhost:4000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=fraud_system_prod
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    environment:
+      - KAFKA_NODE_ID=1
+      - KAFKA_PROCESS_ROLES=broker,controller
+      - KAFKA_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
+      - KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0
+      - KAFKA_CLUSTER_ID=MkU3OEVBNTcwNTJENDM2Qk
+
+volumes:
+  postgres_data_prod:

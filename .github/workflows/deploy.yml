@@ -1,0 +1,74 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ "main" ]
+
+env:
+  PROJECT_ID: fraud-enigma-prod
+  REGION: us-central1
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Elixir
+      uses: erlef/setup-beam@v1
+      with:
+        elixir-version: '1.15.7'
+        otp-version: '26.0'
+    - name: Install dependencies
+      run: |
+        cd fraud_system
+        mix deps.get
+    - name: Run Tests
+      run: |
+        cd fraud_system
+        # mix test # Uncomment when tests are ready
+
+  deploy-backend:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - id: 'auth'
+      uses: 'google-github-actions/auth@v1'
+      with:
+        credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+    - name: 'Set up Cloud SDK'
+      uses: 'google-github-actions/setup-gcloud@v1'
+    - name: 'Build and Push Container'
+      run: |
+        gcloud builds submit --tag gcr.io/$PROJECT_ID/fraud-backend:latest fraud_system
+    - name: 'Deploy to Cloud Run'
+      run: |
+        gcloud run deploy fraud-backend \
+          --image gcr.io/$PROJECT_ID/fraud-backend:latest \
+          --region $REGION \
+          --platform managed \
+          --allow-unauthenticated \
+          --set-env-vars "GCP_PROJECT_ID=$PROJECT_ID"
+
+  deploy-frontend:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - id: 'auth'
+      uses: 'google-github-actions/auth@v1'
+      with:
+        credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+    - name: 'Set up Cloud SDK'
+      uses: 'google-github-actions/setup-gcloud@v1'
+    - name: 'Build and Push Container'
+      run: |
+        gcloud builds submit --tag gcr.io/$PROJECT_ID/fraud-frontend:latest dashboard
+    - name: 'Deploy to Cloud Run'
+      run: |
+        gcloud run deploy fraud-frontend \
+          --image gcr.io/$PROJECT_ID/fraud-frontend:latest \
+          --region $REGION \
+          --platform managed \
+          --allow-unauthenticated \
+          --set-env-vars "NEXT_PUBLIC_API_URL=https://fraud-backend-xxxxx.run.app"
