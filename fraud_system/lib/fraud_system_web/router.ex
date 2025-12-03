@@ -8,4 +8,9 @@ defmodule FraudSystemWeb.Router do
   scope "/api", FraudSystemWeb do
     pipe_through :api
   end
+
+  scope "/", FraudSystemWeb do
+    pipe_through :api
+    get "/health", HealthController, :index
+  end
 end

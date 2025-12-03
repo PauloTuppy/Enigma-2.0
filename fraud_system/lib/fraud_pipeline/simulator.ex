@@ -20,21 +20,26 @@ defmodule FraudPipeline.Simulator do
   def handle_info(:generate_bet, state) do
     bet = generate_random_bet()
     
-    # In a real scenario, we would use a Kafka Producer here (e.g., Brod or Kaffe)
-    # For this PoC, we will simulate the "Input" by sending directly to the Processor
-    # OR we can just log it if we don't have a running Kafka producer set up in code yet.
-    # Ideally, we produce to Kafka.
+    # Run through Enigma analysis
+    {status, reason, score} = FraudPipeline.Enigma.analyze(bet)
     
-    # For simplicity in this "Fortress" setup without a full Kafka Producer config:
-    # We will just Log it for now, assuming the user will hook up the Producer later
-    # OR we can try to use a simple producer if we had one.
+    # Enrich the transaction with fraud analysis
+    processed_bet = Map.merge(bet, %{
+      "fraud_status" => Atom.to_string(status),
+      "fraud_reason" => Atom.to_string(reason),
+      "fraud_score" => score,
+      "processed_at" => DateTime.utc_now() |> DateTime.to_iso8601()
+    })
     
-    # Let's simulate the "Arrival" of the message by calling the Processor logic directly 
-    # if we wanted to test without Kafka, but the plan says Kafka.
+    # Broadcast ALL transactions to frontend for real-time display
+    FraudSystemWeb.Endpoint.broadcast("fraud:alerts", "new_batch", %{frauds: [processed_bet]})
     
-    # TODO: Implement actual Kafka Production. 
-    # For now, we will just print to console to show activity.
-    Logger.info("🎲 Generated Bet: #{inspect(bet)}")
+    # Log fraud detections
+    if status == :fraud do
+      Logger.warning("🚨 FRAUD DETECTED: #{inspect(processed_bet)}")
+    else
+      Logger.debug("✅ Clean transaction: #{bet["transaction_id"]}")
+    end
 
     schedule_next_bet()
     {:noreply, state}

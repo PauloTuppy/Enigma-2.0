@@ -37,7 +37,8 @@ defmodule FraudSystem.MixProject do
       {:cors_plug, "~> 3.0"},
       {:broadway_kafka, "~> 0.4.1"},
       {:httpoison, "~> 2.0"},
-      {:goth, "~> 1.4"}
+      {:goth, "~> 1.4"},
+      {:elixir_uuid, "~> 1.2"}
     ]
   end
 
